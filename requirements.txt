@@ -30,3 +30,4 @@ sqlparse==0.4.1
 Twisted @ file:///E:/coding/pubresource/Twisted-20.3.0-cp38-cp38-win_amd64.whl
 w3lib==1.22.0
 zope.interface==5.2.0
+Scrapy~=2.4.1
