@@ -20,6 +20,18 @@ def get_price(response):
         price = None
     return price
 
+
+def get_deadline(response):
+    try:
+        deadline = re.search(r'截止时间[、|：](.*?<u>)?(.*?)[。|（北京时间）]', response.text).group(2)
+        deadline = deadline.replace("<u>", "").replace("</u>","")
+    except AttributeError:
+        deadline = None
+        # deadline = re.search(r'截止时间：(.*?)（北京时间）', response.text).group(1)
+        # deadline = deadline.replace("<u>", "").replace("</u>","")
+    return deadline
+
+
 def get_agent(response):
     try:
         agent = re.search(r'采购代理机构(信息)?.*?名\s{0,4}称：(<\w+>)?(.*?)<', response.text).group(3)
@@ -63,6 +75,7 @@ class QuotesSpider(scrapy.Spider):
         pro['name'] = response.css("div.neirong h1::text").get()
         pro['project_code'] = get_project_code(response)
         pro['price'] = get_price(response)
+        pro['deadline'] = get_deadline(response)
         pro['agent'] = get_agent(response)
         pro['client'] = get_client(response)
         time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
