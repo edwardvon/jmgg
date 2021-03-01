@@ -22,7 +22,7 @@ def get_price(response):
 
 def get_agent(response):
     try:
-        agent = re.search(r'采购代理机构(信息)?.*?名\s{0,4}称?：(<\w+>)?(.*?)[<]', response.text).group(3)
+        agent = re.search(r'采购代理机构(信息)?.*?名\s{0,4}称：(<\w+>)?(.*?)<', response.text).group(3)
     except AttributeError:
         agent = None
     return agent
@@ -61,9 +61,9 @@ class QuotesSpider(scrapy.Spider):
     def parse_content(self, response):
         pro = JmggItem()
         pro['name'] = response.css("div.neirong h1::text").get()
-        # pro['project_code'] = get_project_code(response)
-        # pro['price'] = get_price(response)
-        # pro['agent'] = get_agent(response)
+        pro['project_code'] = get_project_code(response)
+        pro['price'] = get_price(response)
+        pro['agent'] = get_agent(response)
         pro['client'] = get_client(response)
         time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
                                                            r'0-9]*?):([0-9]*?)\s')
