@@ -6,7 +6,7 @@ from ..items import JmggItem
 
 def get_project_code(response):
     try:
-        code = re.search(r'[项目编号|招标编号]：(<\w+>)?(.*?)[<|）]', response.text).group(2)
+        code = re.search(r'(项目编号|招标编号)：(<\w+>)?(.*?)[<|）]', response.text).group(3)
     except AttributeError:
         # code = re.search(r'招标编号：(<\w+>)?(.*?)[<|）]', response.text).group(2)
         code = None
@@ -15,7 +15,7 @@ def get_project_code(response):
 
 def get_price(response):
     try:
-        price = re.search(r'[采购预算|预算金额](（元）)?(<\w+>)?：(<\w+>)?(.*?)[（|<]', response.text).group(4)
+        price = re.search(r'采购预算|预算金额(（元）)?(<\w+>)?：(<\w+>)?(.*?)[（|<]', response.text).group(4)
     except AttributeError:
         price = None
     return price
