@@ -12,6 +12,18 @@ def get_project_code(response):
     return code
 
 
+def get_price(response):
+    try:
+        price = re.search(r'[采购预算|预算金额](（元）)?(<\w+>)?：(<\w+>)?(.*?)[（|<]', response.text).group(4)
+    except AttributeError:
+        # try:
+        # price = re.search(r'预算金额（元）：(<\w+>)?(.*?)[<|（]', response.text).group(2)
+        # except AttributeError:
+        # price = re.search(r'采购预算(<\w+>)?：(.*?)[（|<]', response.text).group(2)
+        price = None
+    return price
+
+
 class QuotesSpider(scrapy.Spider):
     name = "jmgg"
     start_urls = [
@@ -40,21 +52,10 @@ class QuotesSpider(scrapy.Spider):
         pro = JmggItem()
         pro['name'] = response.css("div.neirong h1::text").get()
         # pro['project_code'] = get_project_code(response)
-        pro['price'] = self.get_price(response)
+        pro['price'] = get_price(response)
         time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
                                                            r'0-9]*?):([0-9]*?)\s')
         pro['last_updated'] = datetime.datetime(*[int(x) for x in time])
         # pro['agent'] = re.search(r'采购代理机构信息.*?名称：(<\w+>)?(.*?)[<]', response.text).group(2)
         # pro['client'] = re.search(r'采购人信息.*?名称：(<\w+>)?(.*?)<', response.text).group(2)
         yield pro
-
-    def get_price(self, response):
-        try:
-            price = re.search(r'预算金额：(<\w+>)?(.*?)[（|<]', response.text).group(2)
-        except AttributeError:
-            try:
-                price = re.search(r'预算金额（元）：(<\w+>)?(.*?)[<|（]', response.text).group(2)
-            except AttributeError:
-                price = re.search(r'采购预算(<\w+>)?：(.*?)[（|<]', response.text).group(2)
-
-        return price
