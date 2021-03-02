@@ -14,4 +14,5 @@ class JmggItem(scrapy.Item):
     deadline = scrapy.Field()
     client = scrapy.Field()
     agent = scrapy.Field()
+    area = scrapy.Field()
     last_updated = scrapy.Field()
