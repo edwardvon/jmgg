@@ -16,7 +16,8 @@ def get_project_code(response):
 
 def get_price(response):
     try:
-        price = re.search(r'采购预算|预算金额(（元）)?(<\w+>)?：(<\w+>)?(.*?)[（|<]', response.text).group(4)
+        price = re.search(r'采购预算|预算金额(（元）)?(<\w+>)?：(<\w+>)?(.*?)(（|</p)', response.text).group(4)
+        price = float(re.sub(r'(&yen;|&nbsp;|￥|,|\s|元|<[\w/]+>)', "", price))
     except AttributeError:
         price = None
     return price
