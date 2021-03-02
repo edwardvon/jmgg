@@ -80,7 +80,7 @@ class QuotesSpider(scrapy.Spider):
             # 用title属性值而不是text，避免因自动collapse获取不到全称
             title = links.css("a::attr(title)").get()
             url = links.css("a::attr(href)").get()
-            if re.search(r'更正|补充|澄清|论证|单一来源|调整公告', title):
+            if re.search(r'更正|补充|澄清|论证|单一来源|调整公告|预审公告', title):
                 yield {
                     "title": title,
                     "url": url
@@ -91,8 +91,8 @@ class QuotesSpider(scrapy.Spider):
     def parse_content(self, response):
         pro = JmggItem()
         pro['name'] = response.css("div.neirong h1::text").get()
-        pro['project_code'] = get_project_code(response)
-        # pro['price'] = get_price(response)
+        # pro['project_code'] = get_project_code(response)
+        pro['price'] = get_price(response)
         # pro['deadline'] = get_deadline(response)
         # pro['agent'] = get_agent(response)
         # pro['client'] = get_client(response)
