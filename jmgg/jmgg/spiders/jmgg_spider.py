@@ -24,8 +24,12 @@ def get_price(response):
 
 
 def get_deadline(response):
+    p = response.css("div.newsCon")
     try:
-        deadline = re.search(r'截止时间[、：](.*?<u>)?(.*?)[。|（]', response.text).group(2)
+        deadline = re.search(r'截止时间[、：和](.*?<u>)?(.*?)[。|（]', response.text).group(2)
+        # time = p.xpath("//p[contains(.//text(), '投标截止时间和开标时间：')]").re(r'(\d+)年(\d+)月(\d+)日(\d+)[:时](\d+)')
+        # deadline = datetime.datetime(*[int(x) for x in time])
+        # deadline = ','.join(time)
         # 将截止时间中间的标签、空格等去除
         deadline = re.sub(r'<.*?>|\s|&nbsp;', "", deadline)
     except AttributeError:
@@ -36,7 +40,7 @@ def get_deadline(response):
 def get_agent(response):
     try:
         # '联系.*?'匹配公告结尾机构信息，避免匹配到正文中的“采购代理机构”而获取到采购人名称
-        agent = re.search(r'联系.*?采购代理机构(信息)?.*?名\s{0,4}称：(<\w+>)?(.*?)[<；，。]', response.text).group(3)
+        agent = re.search(r'联系.*?采购代理机构(信息)?.*?名(\s|&nbsp;){0,4}称：(<\w+>)?(.*?)[<；，。]', response.text).group(4)
     except AttributeError:
         agent = None
     return agent
@@ -44,7 +48,8 @@ def get_agent(response):
 
 def get_client(response):
     try:
-        client = re.search(r'采购人(信息)?.*?名[\s&nbsp;]{0,4}称：(<\w+>)?(.*?)<', response.text).group(3)
+        # “名称”之间适配空格和&nbsp;
+        client = re.search(r'采购人(信息)?.*?名(\s|&nbsp;){0,6}称：(<\w+>)?(.*?)(<|&nbsp;)', response.text).group(4)
     except AttributeError:
         client = None
     return client
@@ -93,10 +98,10 @@ class QuotesSpider(scrapy.Spider):
         pro = JmggItem()
         pro['name'] = response.css("div.neirong h1::text").get()
         # pro['project_code'] = get_project_code(response)
-        pro['price'] = get_price(response)
+        # pro['price'] = get_price(response)
         # pro['deadline'] = get_deadline(response)
         # pro['agent'] = get_agent(response)
-        # pro['client'] = get_client(response)
+        pro['client'] = get_client(response)
         # pro['area'] = get_area(response.url)
         # time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
         #                                     r'0-9]*?):([0-9]*?)\s')
