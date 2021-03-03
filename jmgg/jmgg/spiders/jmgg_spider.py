@@ -1,6 +1,7 @@
 import scrapy
 import re
 import datetime
+import os
 from ..items import JmggItem
 
 
@@ -75,6 +76,14 @@ def get_area(url):
     return AREA[area]
 
 
+def gentle_html(response):
+    num = re.search(r'/(\d+)\.htm', response.url).group(1)
+    area = re.search(r'/(\w+)zccggg', response.url).group(1)
+    if not os.path.exists(f'html/{area}'):
+        os.mkdir(f'html/{area}')
+    with open(f'html/{area}/{num}.html', 'wb') as f:
+        f.write(response.body)
+
 class QuotesSpider(scrapy.Spider):
     name = "jmgg"
     start_urls = [
@@ -90,10 +99,7 @@ class QuotesSpider(scrapy.Spider):
             title = links.css("a::attr(title)").get()
             url = links.css("a::attr(href)").get()
             if re.search(r'更正|补充|澄清|论证|单一来源|调整公告|预审公告', title):
-                yield {
-                    "title": title,
-                    "url": url
-                }
+                yield response.follow(url, self.parse_other)
             else:
                 yield response.follow(url, self.parse_content)
 
@@ -110,4 +116,9 @@ class QuotesSpider(scrapy.Spider):
                                             r'0-9]*?):([0-9]*?)\s')
         pro['last_updated'] = datetime.datetime(*[int(x) for x in time])
         pro['url'] = response.url
+        gentle_html(response)
         yield pro
+
+    def parse_other(self, response):
+        gentle_html(response)
+
