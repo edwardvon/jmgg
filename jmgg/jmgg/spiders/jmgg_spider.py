@@ -40,7 +40,11 @@ def get_deadline(response):
 def get_agent(response):
     try:
         # '联系.*?'匹配公告结尾机构信息，避免匹配到正文中的“采购代理机构”而获取到采购人名称
-        agent = re.search(r'联系.*?采购代理机构(信息)?.*?名(\s|&nbsp;){0,4}称：(<\w+>)?(.*?)[<；，。]', response.text).group(4)
+        # agent = re.search(r'联系.*?采购代理机构(信息)?.*?名(\s|&nbsp;){0,4}称：(<\w+>)?(.*?)(<|&nbsp;|。|，|；)', response.text).group(4)
+
+        # 新匹配方式，从最底下项目联系人处获取采购代理名称；命中率比前一行写法高一点。
+        # (>|：|&nbsp;)匹配名称前可能的字符
+        agent = re.search(r'项目联系人.*(>|：|&nbsp;)(.*?公司)(<|；|。)', response.text).group(2)
     except AttributeError:
         agent = None
     return agent
@@ -100,8 +104,8 @@ class QuotesSpider(scrapy.Spider):
         # pro['project_code'] = get_project_code(response)
         # pro['price'] = get_price(response)
         # pro['deadline'] = get_deadline(response)
-        # pro['agent'] = get_agent(response)
-        pro['client'] = get_client(response)
+        pro['agent'] = get_agent(response)
+        # pro['client'] = get_client(response)
         # pro['area'] = get_area(response.url)
         # time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
         #                                     r'0-9]*?):([0-9]*?)\s')
