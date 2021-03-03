@@ -16,3 +16,4 @@ class JmggItem(scrapy.Item):
     agent = scrapy.Field()
     area = scrapy.Field()
     last_updated = scrapy.Field()
+    url = scrapy.Field()

@@ -26,12 +26,11 @@ def get_price(response):
 def get_deadline(response):
     p = response.css("div.newsCon")
     try:
-        deadline = re.search(r'截止时间[、：和](.*?<u>)?(.*?)[。|（]', response.text).group(2)
-        # time = p.xpath("//p[contains(.//text(), '投标截止时间和开标时间：')]").re(r'(\d+)年(\d+)月(\d+)日(\d+)[:时](\d+)')
-        # deadline = datetime.datetime(*[int(x) for x in time])
-        # deadline = ','.join(time)
+        deadline = re.search(r'(截止时间|磋商时间)[、：和](.*?<u>)?((\d|&nbsp;).*?)[。|（]', response.text).group(3)
         # 将截止时间中间的标签、空格等去除
         deadline = re.sub(r'<.*?>|\s|&nbsp;', "", deadline)
+        time = re.findall(r'\d+', deadline)
+        deadline = datetime.datetime(*[int(x) for x in time])
     except AttributeError:
         deadline = None
     return deadline
@@ -101,13 +100,14 @@ class QuotesSpider(scrapy.Spider):
     def parse_content(self, response):
         pro = JmggItem()
         pro['name'] = response.css("div.neirong h1::text").get()
-        # pro['project_code'] = get_project_code(response)
-        # pro['price'] = get_price(response)
-        # pro['deadline'] = get_deadline(response)
+        pro['project_code'] = get_project_code(response)
+        pro['price'] = get_price(response)
+        pro['deadline'] = get_deadline(response)
         pro['agent'] = get_agent(response)
-        # pro['client'] = get_client(response)
-        # pro['area'] = get_area(response.url)
-        # time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
-        #                                     r'0-9]*?):([0-9]*?)\s')
-        # pro['last_updated'] = datetime.datetime(*[int(x) for x in time])
+        pro['client'] = get_client(response)
+        pro['area'] = get_area(response.url)
+        time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
+                                            r'0-9]*?):([0-9]*?)\s')
+        pro['last_updated'] = datetime.datetime(*[int(x) for x in time])
+        pro['url'] = response.url
         yield pro
