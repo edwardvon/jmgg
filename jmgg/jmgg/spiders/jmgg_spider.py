@@ -18,9 +18,15 @@ def get_project_code(response):
 def get_price(response):
     try:
         price = re.search(r'采购预算|预算金额(（元）)?(<\w+>)?：(<\w+>)?(.*?)(（|</p)', response.text).group(4)
-        price = float(re.sub(r'(&yen;|&nbsp;|￥|,|\s|元|<[\w/]+>)', "", price))
+        price = re.sub(r'(。|&yen;|&nbsp;|￥|,|\s|元|<[\w/]+>)', "", price)
     except AttributeError:
         price = None
+    try:
+        price = float(price)
+    except ValueError:
+        pass
+    except TypeError:
+        pass
     return price
 
 
@@ -33,6 +39,10 @@ def get_deadline(response):
         time = re.findall(r'\d+', deadline)
         deadline = datetime.datetime(*[int(x) for x in time])
     except AttributeError:
+        deadline = None
+    except TypeError:
+        deadline = None
+    except ValueError:
         deadline = None
     return deadline
 
@@ -53,7 +63,7 @@ def get_agent(response):
 def get_client(response):
     try:
         # “名称”之间适配空格和&nbsp;
-        client = re.search(r'采购人(信息)?.*?名(\s|&nbsp;){0,6}称：(<\w+>)?(.*?)(<|&nbsp;)', response.text).group(4)
+        client = re.search(r'采购人(信息)?.*?名(\s|&nbsp;){0,6}称：(<\w+>)?(.*?)(<|&nbsp;|；|。)', response.text).group(4)
     except AttributeError:
         client = None
     return client
@@ -76,13 +86,24 @@ def get_area(url):
     return AREA[area]
 
 
-def gentle_html(response):
-    num = re.search(r'/(\d+)\.htm', response.url).group(1)
-    area = re.search(r'/(\w+)zccggg', response.url).group(1)
-    if not os.path.exists(f'html/{area}'):
-        os.mkdir(f'html/{area}')
-    with open(f'html/{area}/{num}.html', 'wb') as f:
-        f.write(response.body)
+def gentle_file(path, filename, content, decode='wb'):
+    if not os.path.exists(path):
+        os.mkdir(path)
+    with open(f'{path}/{filename}', decode) as f:
+        f.write(content)
+
+
+def gentle_html(response, area, num):
+    path = f'html/{area}'
+    filename = f'{num}.html'
+    gentle_file(path, filename, response.body)
+
+
+def download_pdf(response, area, num):
+    path = f'html/{area}'
+    filename = f'{num}.pdf'
+    gentle_file(path, filename, response.body)
+
 
 class QuotesSpider(scrapy.Spider):
     name = "jmgg"
@@ -102,6 +123,9 @@ class QuotesSpider(scrapy.Spider):
                 yield response.follow(url, self.parse_other)
             else:
                 yield response.follow(url, self.parse_content)
+        next_page = response.css("div.pagesite").xpath("//a[contains(text(),'下一页')]/@onclick").re(
+            r"\'.*?\.htm")[0].replace("\'", "")
+        yield response.follow(f'http://zyjy.jiangmen.cn/cggg/{next_page}', self.parse)
 
     def parse_content(self, response):
         pro = JmggItem()
@@ -116,9 +140,23 @@ class QuotesSpider(scrapy.Spider):
                                             r'0-9]*?):([0-9]*?)\s')
         pro['last_updated'] = datetime.datetime(*[int(x) for x in time])
         pro['url'] = response.url
-        gentle_html(response)
+        # 处理html文件创建和pdf下载
+        num = re.search(r'/(\d+)\.htm', response.url).group(1)
+        area = re.search(r'/(\w+)zccggg', response.url).group(1)
+        gentle_html(response, area, num)
+        try:
+            pdf_url = re.search(r'附件.*?href=\"(.*?)\"', response.text).group(1)
+            pro['pdf'] = pdf_url
+            # TODO:完成pdf下载方法。反正都是byte写文件，问题就是路径怎么传参
+            # yield response.follow(pdf_url, self.parse_pdf)
+        except AttributeError:
+            pass
         yield pro
 
     def parse_other(self, response):
-        gentle_html(response)
+        num = re.search(r'/(\d+)\.htm', response.url).group(1)
+        area = re.search(r'/(\w+)zccggg', response.url).group(1)
+        gentle_html(response, area, num)
 
+    def parse_pdf(self, response):
+        pass

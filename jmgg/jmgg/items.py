@@ -17,3 +17,4 @@ class JmggItem(scrapy.Item):
     area = scrapy.Field()
     last_updated = scrapy.Field()
     url = scrapy.Field()
+    pdf = scrapy.Field()
