@@ -3,3 +3,6 @@ venv/
 .idea/
 __pycache__/
 *.whl
+html/
+*.pdf
+a.json
