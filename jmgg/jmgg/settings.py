@@ -1,3 +1,11 @@
+import os
+import django
+import sys
+sys.path.append(os.path.dirname(os.path.abspath('.')))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "pubresource.settings")
+
+django.setup()
+
 # Scrapy settings for jmgg project
 #
 # For simplicity, this file contains only settings considered important or
@@ -88,3 +96,5 @@ ITEM_PIPELINES = {
 # HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 FEED_EXPORT_ENCODING = 'utf-8'
+
+

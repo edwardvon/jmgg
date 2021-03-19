@@ -22,7 +22,7 @@ class Requestments(models.Model):
     client = models.CharField(verbose_name="采购人", max_length=32, null=True, default="")
     area = models.CharField(verbose_name="市/区", max_length=16, null=True, default="", choices=AREAS)
     url = models.URLField(verbose_name="原网站链接", null=True, blank=True)
-    pdf = models.CharField(verbose_name="招标文件链接", null=True, blank=True, default=None)
+    pdf = models.CharField(verbose_name="招标文件链接", null=True, blank=True, default=None, max_length=128)
     pubdate = models.DateTimeField(verbose_name="发布时间", null=True)
 
     join_time = models.DateTimeField(auto_now=True)
@@ -34,7 +34,7 @@ class Requestments(models.Model):
 
 
 class Tags(models.Model):
-    tagid = models.CharField(unique=True, default=uuid4)
+    tagid = models.CharField(unique=True, default=uuid4, max_length=64)
     tag = models.CharField(max_length=32, default="")
     num = models.IntegerField(default=0)
 

@@ -138,8 +138,9 @@ class QuotesSpider(scrapy.Spider):
         pro['area'] = get_area(response.url)
         time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
                                             r'0-9]*?):([0-9]*?)\s')
-        pro['last_updated'] = datetime.datetime(*[int(x) for x in time])
+        pro['pubdate'] = datetime.datetime(*[int(x) for x in time])
         pro['url'] = response.url
+        pro.save()
         # 处理html文件创建和pdf下载
         num = re.search(r'/(\d+)\.htm', response.url).group(1)
         area = re.search(r'/(\w+)zccggg', response.url).group(1)
