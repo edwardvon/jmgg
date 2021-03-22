@@ -6,3 +6,5 @@ __pycache__/
 html/
 *.pdf
 a.json
+dbs/
+logs/

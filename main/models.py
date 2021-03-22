@@ -20,7 +20,7 @@ class Requestments(models.Model):
     deadline = models.DateTimeField(verbose_name="投标截止日期", null=True)
     agent = models.CharField(verbose_name="招标代理机构", max_length=32, null=True, default="")
     client = models.CharField(verbose_name="采购人", max_length=32, null=True, default="")
-    area = models.CharField(verbose_name="市/区", max_length=16, null=True, default="", choices=AREAS)
+    area = models.CharField(verbose_name="市/区", max_length=16, null=True, default="")
     url = models.URLField(verbose_name="原网站链接", null=True, blank=True)
     pdf = models.CharField(verbose_name="招标文件链接", null=True, blank=True, default=None, max_length=128)
     pubdate = models.DateTimeField(verbose_name="发布时间", null=True)
@@ -29,8 +29,14 @@ class Requestments(models.Model):
     last_update_time = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        def __str__(self):
-            return self.name
+        verbose_name = u'招标公告'
+        verbose_name_plural = verbose_name
+        ordering = ['-pubdate']
+        get_latest_by = 'pubdate'
+
+    def __str__(self):
+        return self.name
+
 
 
 class Tags(models.Model):

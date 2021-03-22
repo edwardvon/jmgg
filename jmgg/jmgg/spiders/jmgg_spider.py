@@ -2,7 +2,76 @@ import scrapy
 import re
 import datetime
 import os
+from scrapy.http import Request
 from ..items import JmggItem
+
+
+class QuotesSpider(scrapy.Spider):
+    name = "jmgg"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.date_judge = datetime.datetime(2000, 1, 1)
+
+    def start_requests(self):
+        from main.models import Requestments
+        self.date_judge = Requestments.objects.latest().pubdate
+        url = 'http://zyjy.jiangmen.cn/cggg/index.htm'
+        yield Request(url=url, callback=self.parse)
+
+    def parse(self, response):
+        content_links = response.css('div.itemtw ul li a')
+        for links in content_links:
+            # 用title属性值而不是text，避免因自动collapse获取不到全称
+            title = links.css("a::attr(title)").get()
+            url = links.css("a::attr(href)").get()
+            pubdate = links.css("span.date::text").get().strip()
+            pubdate = datetime.datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
+            if pubdate <= self.date_judge:
+                return None
+            else:
+                if re.search(r'更正|补充|澄清|论证|单一来源|调整公告|预审公告', title):
+                    yield response.follow(url, self.parse_other)
+                else:
+                    yield response.follow(url, self.parse_content)
+        next_page = response.css("div.pagesite").xpath("//a[contains(text(),'下一页')]/@onclick").re(
+            r"\'.*?\.htm")[0].replace("\'", "")
+        yield response.follow(f'http://zyjy.jiangmen.cn/cggg/{next_page}', self.parse)
+
+    def parse_content(self, response):
+        pro = JmggItem()
+        pro['name'] = response.css("div.neirong h1::text").get()
+        pro['project_code'] = get_project_code(response)
+        pro['price'] = get_price(response)
+        pro['deadline'] = get_deadline(response)
+        pro['agent'] = get_agent(response)
+        pro['client'] = get_client(response)
+        pro['area'] = get_area(response.url)
+        time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
+                                            r'0-9]*?):([0-9]*?)\s')
+        pro['pubdate'] = datetime.datetime(*[int(x) for x in time])
+        pro['url'] = response.url
+        pro.save()
+        # 处理html文件创建和pdf下载
+        num = re.search(r'/(\d+)\.htm', response.url).group(1)
+        area = re.search(r'/(\w+)zccggg', response.url).group(1)
+        gentle_html(response, area, num)
+        try:
+            pdf_url = re.search(r'附件.*?href=\"(.*?)\"', response.text).group(1)
+            pro['pdf'] = pdf_url
+            # TODO:完成pdf下载方法。反正都是byte写文件，问题就是路径怎么传参
+            # yield response.follow(pdf_url, self.parse_pdf)
+        except AttributeError:
+            pass
+        yield pro
+
+    def parse_other(self, response):
+        num = re.search(r'/(\d+)\.htm', response.url).group(1)
+        area = re.search(r'/(\w+)zccggg', response.url).group(1)
+        gentle_html(response, area, num)
+
+    def parse_pdf(self, response):
+        pass
 
 
 def get_project_code(response):
@@ -103,61 +172,3 @@ def download_pdf(response, area, num):
     path = f'html/{area}'
     filename = f'{num}.pdf'
     gentle_file(path, filename, response.body)
-
-
-class QuotesSpider(scrapy.Spider):
-    name = "jmgg"
-    start_urls = [
-        'http://zyjy.jiangmen.cn/cggg/index.htm',
-        # 'http://zyjy.jiangmen.cn/szqzccggg/index.htm',
-        # 'http://zyjy.jiangmen.cn/pjqzccggg/index.htm',
-    ]
-
-    def parse(self, response):
-        content_links = response.css('div.itemtw ul li a')
-        for links in content_links:
-            # 用title属性值而不是text，避免因自动collapse获取不到全称
-            title = links.css("a::attr(title)").get()
-            url = links.css("a::attr(href)").get()
-            if re.search(r'更正|补充|澄清|论证|单一来源|调整公告|预审公告', title):
-                yield response.follow(url, self.parse_other)
-            else:
-                yield response.follow(url, self.parse_content)
-        next_page = response.css("div.pagesite").xpath("//a[contains(text(),'下一页')]/@onclick").re(
-            r"\'.*?\.htm")[0].replace("\'", "")
-        yield response.follow(f'http://zyjy.jiangmen.cn/cggg/{next_page}', self.parse)
-
-    def parse_content(self, response):
-        pro = JmggItem()
-        pro['name'] = response.css("div.neirong h1::text").get()
-        pro['project_code'] = get_project_code(response)
-        pro['price'] = get_price(response)
-        pro['deadline'] = get_deadline(response)
-        pro['agent'] = get_agent(response)
-        pro['client'] = get_client(response)
-        pro['area'] = get_area(response.url)
-        time = response.css("div::text").re(r'发布时间：\s*([0-9]*?)-([0-9]*?)-([0-9]*?)\s([0-9]*?):(['
-                                            r'0-9]*?):([0-9]*?)\s')
-        pro['pubdate'] = datetime.datetime(*[int(x) for x in time])
-        pro['url'] = response.url
-        pro.save()
-        # 处理html文件创建和pdf下载
-        num = re.search(r'/(\d+)\.htm', response.url).group(1)
-        area = re.search(r'/(\w+)zccggg', response.url).group(1)
-        gentle_html(response, area, num)
-        try:
-            pdf_url = re.search(r'附件.*?href=\"(.*?)\"', response.text).group(1)
-            pro['pdf'] = pdf_url
-            # TODO:完成pdf下载方法。反正都是byte写文件，问题就是路径怎么传参
-            # yield response.follow(pdf_url, self.parse_pdf)
-        except AttributeError:
-            pass
-        yield pro
-
-    def parse_other(self, response):
-        num = re.search(r'/(\d+)\.htm', response.url).group(1)
-        area = re.search(r'/(\w+)zccggg', response.url).group(1)
-        gentle_html(response, area, num)
-
-    def parse_pdf(self, response):
-        pass
